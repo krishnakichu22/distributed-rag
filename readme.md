@@ -1,4 +1,8 @@
-Repository structure:
+# distributed-rag
+A distributed RAG Architecture 
+
+
+Repository structure :
 
 distributed-rag/
 ├── README.md
@@ -32,6 +36,7 @@ distributed-rag/
 └── notes/
     └── interview_prep.md       # your cheat sheet — design decisions & Q&A
 
+Build order
 
 Stage 1 → simple RAG in one file (Python only).
 Stage 2 → swap in-memory store for Qdrant (first Docker service).
