@@ -1,12 +1,61 @@
-# Distributed RAG System for Document Intelligence
+# Distributed RAG
+
+A distributed Retrieval-Augmented Generation (RAG) architecture built step-by-step from a simple Python implementation to a scalable distributed system using Qdrant, Redis, FastAPI, and Docker.
+
+---
+
+## Repository Structure
+
+```text
+distributed-rag/
+├── README.md
+├── requirements.txt
+├── docker-compose.yml          # Qdrant + Redis (added Stage 2/4)
+├── .gitignore
+├── .env.example                # Config template
+│
+├── stage1_simple_rag.py        # Stage 1: Entire RAG pipeline in one file
+│
+├── app/                        # Added from Stage 3 onward
+│   ├── __init__.py
+│   ├── config.py               # Centralized configuration
+│   ├── chunking.py             # Document → chunk processing
+│   ├── embeddings.py           # Text → vector embeddings
+│   ├── vectorstore.py          # Qdrant wrapper
+│   ├── llm.py                  # Ollama wrapper
+│   ├── cache.py                # Redis semantic cache
+│   ├── pipeline.py             # Retrieval → generation pipeline
+│   └── main.py                 # FastAPI app + SSE streaming
+│
+├── worker/
+│   └── ingest.py               # Standalone ingestion worker
+│
+├── ui/
+│   └── index.html              # Minimal streaming chat UI
+│
+├── data/
+│   └── sample_docs/            # Sample documents for testing
+│
+```
+
+---
+
+# Build Order
+
+## Stage 1 — Simple RAG
+
+- Pure Python implementation
+- Entire pipeline in a single file
+- In-memory vector storage
+- Basic retrieval + generation flow
+
+File:
+- `stage1_simple_rag.py`
 
 A production-shaped Retrieval-Augmented Generation (RAG) system: upload
 documents, ask natural-language questions, get answers streamed token-by-token
 and grounded in what you uploaded — with a semantic cache for repeated
 questions and a message queue so large uploads never block the API.
-
-**Full explanation of every file, line by line, plus interview prep:**
-see **[docs/WALKTHROUGH.md](docs/WALKTHROUGH.md)** — read that first.
 
 ## Stack
 
@@ -29,8 +78,6 @@ Browser --> FastAPI (app/main.py) --> Qdrant (search) / Gemini (generate) / Redi
                                                                        +--> Qdrant (upsert)
 ```
 
-See [docs/WALKTHROUGH.md §2](docs/WALKTHROUGH.md#2-final-architecture) for the
-full diagram and request-flow traces.
 
 ## Repository layout
 
