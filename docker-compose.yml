@@ -1,0 +1,47 @@
+# docker-compose.yml
+# ───────────────────────────────────────────────────────────────
+# The two shared, stateful services the system depends on:
+#   - Qdrant: vector database (semantic search over document chunks)
+#   - Redis:  semantic cache (app/cache.py) AND the ingestion job
+#             queue (app/queue.py) -- same service, two purposes
+#
+# The API (app/main.py) and worker (app/worker.py) are NOT containerized
+# here on purpose -- for local development you run them directly with
+# `uvicorn` / `python -m app.worker` so code changes reload instantly.
+# Both already connect to these services over the network (localhost),
+# exactly like they would if they were also running as containers or
+# on entirely separate machines -- that's what makes them "distributed"
+# rather than tightly coupled.
+#
+# Usage:
+#   docker compose up -d     # start Qdrant + Redis in the background
+#   docker compose ps        # see what's running
+#   docker compose logs -f   # follow logs
+#   docker compose down      # stop everything
+#
+# After `up -d`:
+#   Qdrant HTTP API:  http://localhost:6333
+#   Qdrant Dashboard: http://localhost:6333/dashboard  <- open this!
+#   Redis:            localhost:6379
+# ───────────────────────────────────────────────────────────────
+
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.12.4
+    container_name: rag-qdrant
+    ports:
+      - "6333:6333"   # REST/HTTP API
+      - "6334:6334"   # gRPC API (unused here, but the standard port)
+    volumes:
+      - ./qdrant_storage:/qdrant/storage
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    container_name: rag-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./redis_data:/data
+    command: redis-server --save 60 1   # snapshot to disk every 60s if >=1 key changed
+    restart: unless-stopped

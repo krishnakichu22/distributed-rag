@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.Python
+venv/
+.venv/
+env/
+
+# Environment / secrets
+.env
+
+# Local model & data caches
+.cache/
+*.log
+
+# Qdrant / Redis local volumes (if mounted locally)
+qdrant_storage/
+redis_data/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+.claude
+*.swp
+
+# Personal notes
+stage_tracker
+
+venv/
