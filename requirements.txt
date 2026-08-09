@@ -1,0 +1,20 @@
+# ── Stage 1: simple RAG in one file ────────────────────────────
+sentence-transformers==3.3.1   # local embeddings, no API key, no rate limit
+google-genai==0.4.0            # Gemini API (free tier) — the LLM
+numpy==2.2.1                   # cosine similarity math
+python-dotenv==1.0.1           # load GEMINI_API_KEY from .env
+
+# ── Stage 2: real vector database ──────────────────────────────
+qdrant-client==1.12.1          # Python client for Qdrant vector DB
+
+# ── Stage 3: API + streaming ───────────────────────────────────
+fastapi==0.115.6
+uvicorn[standard]==0.34.0      # ASGI server that runs FastAPI
+pydantic-settings==2.7.0       # typed config from .env
+python-multipart==0.0.20       # file uploads in FastAPI
+
+# ── Stage 4: caching ───────────────────────────────────────────
+redis==5.2.1                   # Python client for Redis
+
+# ── Utilities ──────────────────────────────────────────────────
+pypdf==5.1.0                   # read PDF documents

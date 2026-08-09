@@ -1,8 +1,12 @@
 import os
+import sys
 import numpy as np
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 from google import genai
+
+# Windows PowerShell defaults stdout to cp1252, which can't print ✓ etc.
+sys.stdout.reconfigure(encoding="utf-8")
 
 # load .env
 load_dotenv()

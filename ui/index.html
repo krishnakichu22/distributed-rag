@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Distributed RAG System</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 760px; margin: 40px auto; padding: 0 16px; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  section { border: 1px solid #ddd; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+  input[type=text] { width: 70%; padding: 8px; }
+  button { padding: 8px 14px; cursor: pointer; }
+  #answer { white-space: pre-wrap; background: #f7f7f7; padding: 12px; border-radius: 6px; min-height: 2em; margin-top: 10px; }
+  .sources { font-size: 0.85rem; color: #555; margin-top: 8px; }
+  .meta { font-size: 0.85rem; color: #0a7a0a; margin-top: 6px; }
+  .status { font-size: 0.85rem; color: #555; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Distributed RAG System — Document Intelligence</h1>
+
+<section>
+  <h2>1. Ingest a document</h2>
+  <input type="file" id="fileInput" accept=".txt,.pdf">
+  <button onclick="upload()">Upload</button>
+  <div class="status" id="ingestStatus"></div>
+</section>
+
+<section>
+  <h2>2. Ask a question</h2>
+  <input type="text" id="question" placeholder="Ask about the uploaded document...">
+  <button onclick="ask()">Ask</button>
+  <div id="answer"></div>
+  <div class="meta" id="meta"></div>
+  <div class="sources" id="sources"></div>
+</section>
+
+<script>
+async function upload() {
+  const fileInput = document.getElementById('fileInput');
+  const statusEl = document.getElementById('ingestStatus');
+  if (!fileInput.files.length) { statusEl.textContent = 'Pick a file first.'; return; }
+
+  const form = new FormData();
+  form.append('file', fileInput.files[0]);
+
+  statusEl.textContent = 'Uploading...';
+  const res = await fetch('/ingest', { method: 'POST', body: form });
+  if (!res.ok) { statusEl.textContent = 'Upload failed: ' + (await res.text()); return; }
+  const { job_id } = await res.json();
+  statusEl.textContent = `Job ${job_id} queued. Waiting for worker...`;
+
+  // Poll job status until the worker (a separate process) finishes it.
+  const poll = setInterval(async () => {
+    const r = await fetch(`/jobs/${job_id}`);
+    const data = await r.json();
+    if (data.status === 'done') {
+      clearInterval(poll);
+      statusEl.textContent = `Done -- ${data.chunks_ingested} chunks ingested from ${data.filename}.`;
+    } else if (data.status === 'error') {
+      clearInterval(poll);
+      statusEl.textContent = `Ingestion failed: ${data.error}`;
+    } else {
+      statusEl.textContent = `Status: ${data.status}...`;
+    }
+  }, 1000);
+}
+
+async function ask() {
+  const question = document.getElementById('question').value.trim();
+  if (!question) return;
+
+  const answerEl = document.getElementById('answer');
+  const metaEl = document.getElementById('meta');
+  const sourcesEl = document.getElementById('sources');
+  answerEl.textContent = '';
+  metaEl.textContent = '';
+  sourcesEl.textContent = '';
+
+  const start = performance.now();
+
+  const res = await fetch('/query', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question }),
+  });
+
+  // EventSource only supports GET requests, and our question needs to be a
+  // POST body -- so instead of EventSource we read the streamed response
+  // body ourselves and parse the same "event:/data:" SSE framing by hand.
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let boundary;
+    while ((boundary = buffer.indexOf('\n\n')) !== -1) {
+      const rawEvent = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + 2);
+      handleEvent(rawEvent);
+    }
+  }
+
+  function handleEvent(rawEvent) {
+    const eventLine = rawEvent.split('\n').find(l => l.startsWith('event: '));
+    const dataLine = rawEvent.split('\n').find(l => l.startsWith('data: '));
+    if (!eventLine || !dataLine) return;
+
+    const eventName = eventLine.slice('event: '.length);
+    const data = JSON.parse(dataLine.slice('data: '.length));
+
+    if (eventName === 'sources') {
+      sourcesEl.textContent = data.sources
+        .map(s => `[${s.score.toFixed(3)}] ${s.source}: ${s.text.slice(0, 80)}...`)
+        .join('\n');
+    } else if (eventName === 'token') {
+      answerEl.textContent += data.text;
+    } else if (eventName === 'done') {
+      const ms = Math.round(performance.now() - start);
+      metaEl.textContent = data.cached
+        ? `Served from semantic cache in ${ms}ms`
+        : `Generated fresh in ${ms}ms`;
+    }
+  }
+}
+</script>
+</body>
+</html>
