@@ -36,8 +36,6 @@ distributed-rag/
 ├── data/
 │   └── sample_docs/            # Sample documents for testing
 │
-└── notes/
-    └── interview_prep.md       # Design decisions & interview Q&A
 ```
 
 ---
