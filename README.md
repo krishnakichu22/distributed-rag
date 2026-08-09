@@ -50,8 +50,7 @@ ui/
 examples/
   01_inmemory_rag.py   Stage 1: the whole RAG loop, no infrastructure
   02_qdrant_rag.py     Stage 2: same loop, Qdrant instead of an in-memory list
-docs/
-  WALKTHROUGH.md  full line-by-line explanation + interview Q&A bank
+  
 docker-compose.yml  Qdrant + Redis
 ```
 
